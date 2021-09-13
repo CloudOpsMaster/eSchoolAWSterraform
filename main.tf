@@ -50,7 +50,8 @@ resource "aws_instance" "mysql" {
   )
 
   network_interface {
-    network_interface_id = aws_network_interface.mysql.id
+    #network_interface_id = aws_network_interface.mysql.id
+    network_interface_id = aws_network_interface.db_private.id
     device_index         = 0
   }
 
@@ -65,27 +66,6 @@ resource "aws_instance" "mysql" {
   }
 
 }
-
-
-
-
-
-# # Attach floating ip on instance mysql
-# resource "aws_eip" "public_mysql" {
-#   vpc        = true
-#   instance   = aws_instance.mysql.id
-#   depends_on = [aws_internet_gateway.gw]
-#   tags = {
-#     Name    = "public-app1"
-#     Owner   = "Vadim Tailor"
-#     Project = "awsEschool"
-#   }
-# }
-
-
-
-
-
 
 resource "aws_instance" "eSchool_1" {
 

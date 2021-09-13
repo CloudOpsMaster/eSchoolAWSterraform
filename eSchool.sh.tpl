@@ -27,7 +27,7 @@ sudo sed -i 's/OFKFvBCMnyZ012NSNzzFmw==/admin/g' ./eSchool/src/main/resources/ap
 
 
 # replace ip from localhost
-sudo sed -i 's/localhost/192.168.1.50/g' ./eSchool/src/main/resources/application.properties
+sudo sed -i 's/localhost/192.168.2.50/g' ./eSchool/src/main/resources/application.properties
 
 
 #Set application database credentials

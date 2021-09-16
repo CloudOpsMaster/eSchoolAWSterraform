@@ -43,8 +43,8 @@ sudo printf "<VirtualHost *:80>
         #Include conf-available/serve-cgi-bin.conf
         
 <Proxy balancer://mycluster>
-    BalancerMember http://${APLICATION1}:8080
-    BalancerMember http://${APLICATION1}:8080
+    BalancerMember http://${APLICATION1}:8080 loadfactor=5
+    BalancerMember http://${APLICATION2}:8080 loadfactor=95
     ProxySet lbmethod=byrequests
     ProxySet stickysession=ROUTEID
 </Proxy>

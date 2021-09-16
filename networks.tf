@@ -1,10 +1,10 @@
 # vpc
 resource "aws_vpc" "vpc" {
-  cidr_block       = "192.168.0.0/16"
+  cidr_block       = var.vpc_cidr
   instance_tenancy = "default"
 
   tags = {
-    Name = "vpc"
+    Name    = "vpc"
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
   }
@@ -15,15 +15,15 @@ resource "aws_vpc" "vpc" {
 
 # public subnet
 resource "aws_subnet" "public_subnet" {
-  depends_on = [ aws_vpc.vpc]
+  depends_on = [aws_vpc.vpc]
 
   vpc_id     = aws_vpc.vpc.id
-  cidr_block = "192.168.0.0/24"
+  cidr_block = var.public_cidr
 
   # availability_zone_id = "us-west-1b"
 
   tags = {
-    Name = "public_subnet"
+    Name    = "public_subnet"
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
   }
@@ -38,12 +38,12 @@ resource "aws_subnet" "private_subnet" {
   ]
 
   vpc_id     = aws_vpc.vpc.id
-  cidr_block = "192.168.1.0/24"
+  cidr_block = var.private_cidr
 
   # availability_zone_id = "us-west-1b"
 
   tags = {
-    Name = "private-subnet"
+    Name    = "private-subnet"
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
   }
@@ -58,7 +58,7 @@ resource "aws_internet_gateway" "internet_gateway" {
   vpc_id = aws_vpc.vpc.id
 
   tags = {
-    Name = "internet-gateway"
+    Name    = "internet-gateway"
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
   }
@@ -79,7 +79,7 @@ resource "aws_route_table" "IG_route_table" {
   }
 
   tags = {
-    Name = "IG-route-table"
+    Name    = "IG-route-table"
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
   }
@@ -98,7 +98,7 @@ resource "aws_route_table_association" "associate_routetable_to_public_subnet" {
 
 # elastic ip
 resource "aws_eip" "elastic_ip" {
-  vpc      = true
+  vpc = true
 }
 
 # NAT gateway
@@ -111,7 +111,7 @@ resource "aws_nat_gateway" "nat_gateway" {
   subnet_id     = aws_subnet.public_subnet.id
 
   tags = {
-    Name = "nat-gateway"
+    Name    = "nat-gateway"
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
   }
@@ -148,7 +148,6 @@ resource "aws_route_table_association" "associate_routetable_to_private_subnet" 
 }
 
 
-
 # bastion host security group
 resource "aws_security_group" "sg_bastion_host" {
   depends_on = [
@@ -158,28 +157,15 @@ resource "aws_security_group" "sg_bastion_host" {
   description = "bastion host security group"
   vpc_id      = aws_vpc.vpc.id
 
-  ingress {
-    description = "allow SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-    ingress {
-    description = "allow TCP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-    ingress {
-    description = "allow TCP"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  dynamic "ingress" {
+    iterator = port
+    for_each = var.ingress_ports_bastion
+    content {
+      from_port   = port.value
+      to_port     = port.value
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
 
   egress {
@@ -210,10 +196,10 @@ resource "aws_security_group" "app" {
   }
 
   ingress {
-    description = "allow SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    description     = "allow SSH"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
     security_groups = [aws_security_group.sg_bastion_host.id]
   }
 
@@ -235,18 +221,18 @@ resource "aws_security_group" "sg_mysql" {
   vpc_id      = aws_vpc.vpc.id
 
   ingress {
-    description = "allow TCP"
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
+    description     = "allow TCP"
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
     security_groups = [aws_security_group.app.id]
   }
 
   ingress {
-    description = "allow SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    description     = "allow SSH"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
     security_groups = [aws_security_group.sg_bastion_host.id]
   }
 
@@ -257,6 +243,7 @@ resource "aws_security_group" "sg_mysql" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
 
 
 

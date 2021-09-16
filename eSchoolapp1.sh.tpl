@@ -25,13 +25,11 @@ sudo apt-get install gitlab-runner=10.0.0
 sudo gitlab-runner register \
   --non-interactive \
   --url "https://gitlab.com/" \
-  --registration-token "UGS9DHfDyZUzMnDqPHsZ" \
+  --registration-token "${registration_token}" \
   --executor "shell" \
   --description "app1 runner" \
   --tag-list "eSchool" \
   --run-untagged="true" \
   --locked="false" \
   --access-level="not_protected"
-
-
 sudo usermod -aG sudo gitlab-runner

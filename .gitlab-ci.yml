@@ -1,0 +1,50 @@
+stages:
+    - build
+    - test
+    - deploy
+#before_script:
+
+eSchool build:
+    stage: build
+    script:
+        - cd ~
+        - rm -rf eSchool
+        - git clone https://gitlab.com/vadim_tailor/eSchool.git
+        - sed -i 's/2019/'`date +%Y`'/g' ./eSchool/src/test/java/academy/softserve/eschool/controller/ScheduleControllerIntegrationTest.java
+        - sed -i 's/administrator/admin/g' ./eSchool/src/main/resources/application.properties
+        - sed -i 's/OFKFvBCMnyZ012NSNzzFmw==/admin/g' ./eSchool/src/main/resources/application.properties
+        - sed -i 's/localhost/192.168.1.232/g' ./eSchool/src/main/resources/application.properties
+        - sed -i 's/DATASOURCE_USERNAME:root/DATASOURCE_USERNAME:'eschool'/g' ./eSchool/src/main/resources/application.properties
+        - sed -i 's/DATASOURCE_PASSWORD:root/DATASOURCE_PASSWORD:'b1dnijpesvseshesre'/g' ./eSchool/src/main/resources/application.properties
+        - cd ./eSchool
+        - mvn clean
+        - mvn package -DskipTests
+    artifacts:
+     paths:
+      - build/
+    tags: 
+        - eSchool  
+    
+Unit tests:
+    stage: test
+    script:
+        - echo 'stage unit test'
+    tags: 
+        - eSchool  
+
+Linter:
+    stage: test
+    script:
+        - echo 'stage linter test'
+    tags: 
+        - eSchool  
+
+    
+Deploy to dev:
+    stage: deploy
+    script:
+        - echo "${CI_PROJECT_NAME} from branch master" >> ~/bild.txt
+        - java -jar ~/eSchool/target/eschool.jar   
+    tags: 
+        - eSchool   
+        

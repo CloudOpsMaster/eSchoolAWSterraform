@@ -43,8 +43,8 @@ sudo printf "<VirtualHost *:80>
         #Include conf-available/serve-cgi-bin.conf
         
 <Proxy balancer://mycluster>
-    BalancerMember http://192.168.1.20:8080
-    BalancerMember http://192.168.1.30:8080
+    BalancerMember http://${APLICATION1}:8080 loadfactor=5
+    BalancerMember http://${APLICATION2}:8080 loadfactor=95
     ProxySet lbmethod=byrequests
     ProxySet stickysession=ROUTEID
 </Proxy>
@@ -54,4 +54,5 @@ sudo printf "<VirtualHost *:80>
 </VirtualHost>
 # vim: syntax=apache ts=4 sw=4 sts=4 sr noet
  " > /etc/apache2/sites-available/000-default.conf
- sudo service apache2 restart
+ 
+sudo service apache2 restart

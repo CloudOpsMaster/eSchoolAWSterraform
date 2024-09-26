@@ -1,27 +1,20 @@
 provider "aws" {
-  region = "us-west-1"
+  region = var.region
 }
 
 
 resource "aws_instance" "loadbalancer" {
-  #  count                  = 1
-  ami           = "ami-0d382e80be7ffdae5"
-  instance_type = "t2.micro"
-  depends_on = [aws_vpc.eSchool, aws_subnet.eSchool, aws_instance.mysql,
-  aws_instance.eSchool_1, aws_instance.eSchool_2]
-  key_name = "aws_key"
+  ami                    = "ami-0d382e80be7ffdae5"
+  instance_type          = "t2.micro"
+  depends_on             = [aws_security_group.sg_bastion_host]
+  vpc_security_group_ids = [aws_security_group.sg_bastion_host.id]
+  subnet_id              = aws_subnet.public_subnet.id
+  key_name               = "aws_key"
   user_data = templatefile("${path.module}/loadbalancer.sh.tpl", {
-    name_instance = "loadbalancer"
-    name_group_h  = "load balancer group"
+    APLICATION1 = aws_instance.eSchool_1.private_ip
+    APLICATION2 = aws_instance.eSchool_2.private_ip
     }
   )
-
-  network_interface {
-    network_interface_id = aws_network_interface.loadbalancer.id
-    device_index         = 0
-  }
-
-
   tags = {
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
@@ -31,80 +24,44 @@ resource "aws_instance" "loadbalancer" {
   lifecycle {
     create_before_destroy = true
   }
-
 }
 
-
-
 resource "aws_instance" "mysql" {
-  # count         = 1
   ami           = "ami-0d382e80be7ffdae5"
   instance_type = "t2.micro"
-  depends_on    = [aws_vpc.eSchool, aws_subnet.eSchool]
-  key_name      = "aws_key"
+  depends_on = [aws_security_group.sg_mysql, aws_nat_gateway.nat_gateway,
+  aws_route_table_association.associate_routetable_to_private_subnet]
+  key_name = "aws_key"
   user_data = templatefile("${path.module}/mysql.sh.tpl", {
-    DATASOURCE_USERNAME = "eschool"
-    DATASOURCE_PASSWORD = "b1dnijpesvseshesre"
-    MYSQL_ROOT_PASSWORD = "legme876FCTFEfg1"
+    DATASOURCE_USERNAME = var.DATASOURCE_USERNAME
+    DATASOURCE_PASSWORD = var.DATASOURCE_PASSWORD
+    MYSQL_ROOT_PASSWORD = var.MYSQL_ROOT_PASSWORD
     }
   )
-
-  network_interface {
-    network_interface_id = aws_network_interface.mysql.id
-    device_index         = 0
-  }
+  vpc_security_group_ids = [aws_security_group.sg_mysql.id]
+  subnet_id              = aws_subnet.private_subnet.id
 
   tags = {
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
     Name    = "mysql db"
   }
-
   lifecycle {
     create_before_destroy = true
   }
-
 }
 
-
-
-
-
-# # Attach floating ip on instance mysql
-# resource "aws_eip" "public_mysql" {
-#   vpc        = true
-#   instance   = aws_instance.mysql.id
-#   depends_on = [aws_internet_gateway.gw]
-#   tags = {
-#     Name    = "public-app1"
-#     Owner   = "Vadim Tailor"
-#     Project = "awsEschool"
-#   }
-# }
-
-
-
-
-
-
 resource "aws_instance" "eSchool_1" {
-
-  ami           = "ami-0d382e80be7ffdae5"
-  instance_type = "t2.micro"
-  depends_on    = [aws_vpc.eSchool, aws_subnet.eSchool, aws_instance.mysql]
-  key_name      = "aws_key"
-  user_data = templatefile("${path.module}/eSchool.sh.tpl", {
-    DATASOURCE_USERNAME = "eschool"
-    DATASOURCE_PASSWORD = "b1dnijpesvseshesre"
-    MYSQL_ROOT_PASSWORD = "legme876FCTFEfg1"
+  ami                    = "ami-0d382e80be7ffdae5"
+  instance_type          = "t2.micro"
+  depends_on             = [aws_security_group.app, aws_instance.mysql]
+  vpc_security_group_ids = [aws_security_group.app.id]
+  subnet_id              = aws_subnet.private_subnet.id
+  key_name               = "aws_key"
+  user_data = templatefile("${path.module}/eSchoolapp1.sh.tpl", {
+    registration_token = var.registration_token
     }
   )
-
-  network_interface {
-    network_interface_id = aws_network_interface.app1.id
-    device_index         = 0
-  }
-
   tags = {
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
@@ -117,40 +74,21 @@ resource "aws_instance" "eSchool_1" {
 }
 
 
-## Attach floating ip on instance loadbalancer
-#resource "aws_eip" "public_eSchool_1" {
-#  vpc        = true
-#  instance   = aws_instance.eSchool_1.id
-#  depends_on = [aws_internet_gateway.gw]
-#  tags = {
-#    Name    = "public-app1"
-#    Owner   = "Vadim Tailor"
-#    Project = "awsEschool"
-#  }
-#}
-
-
-
-
 resource "aws_instance" "eSchool_2" {
-  count         = 1
-  ami           = "ami-0d382e80be7ffdae5"
-  instance_type = "t2.micro"
-  depends_on    = [aws_vpc.eSchool, aws_subnet.eSchool, aws_instance.mysql]
-  key_name      = "aws_key"
+
+  ami                    = "ami-0d382e80be7ffdae5"
+  instance_type          = "t2.micro"
+  depends_on             = [aws_security_group.app, aws_instance.mysql]
+  vpc_security_group_ids = [aws_security_group.app.id]
+  subnet_id              = aws_subnet.public_subnet.id
+  key_name               = "aws_key"
   user_data = templatefile("${path.module}/eSchool.sh.tpl", {
-    DATASOURCE_USERNAME = "eschool"
-    DATASOURCE_PASSWORD = "b1dnijpesvseshesre"
-    MYSQL_ROOT_PASSWORD = "legme876FCTFEfg1"
+    MYSQL_HOST          = aws_instance.mysql.private_ip
+    DATASOURCE_USERNAME = var.DATASOURCE_USERNAME
+    DATASOURCE_PASSWORD = var.DATASOURCE_PASSWORD
+    MYSQL_ROOT_PASSWORD = var.MYSQL_ROOT_PASSWORD
     }
   )
-
-  network_interface {
-    network_interface_id = aws_network_interface.app2.id
-    device_index         = 0
-  }
-
-
   tags = {
     Owner   = "Vadim Tailor"
     Project = "awsEschool"
@@ -160,6 +98,6 @@ resource "aws_instance" "eSchool_2" {
   lifecycle {
     create_before_destroy = true
   }
-
 }
+
 
